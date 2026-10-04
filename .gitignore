@@ -1,0 +1,7 @@
+node_modules
+dist
+*.local
+.DS_Store
+
+# glb の元データ（phone.glb はこれから gltf-transform で作る。コミットしない）
+public/models/phone_test.glb

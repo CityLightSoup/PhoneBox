@@ -1,0 +1,377 @@
+/*
+ * 配色（Papers, Please を意識した、くすんだ配色）
+ *   soot  #0e0f0a  背景・暗い面
+ *   olive #2b2a1f  面
+ *   khaki #8a8466  罫線・補足の文字
+ *   paper #e2dcc0  文字
+ *   dim   #5e5b46  これからの手順
+ *   stamp #c0392b  警告
+ * フォントは Tiny5（8x8格子、SIL OFL。src/assets/fonts/ で自前ホスト）。
+ *   font-size は 8px の倍数だけ（16 / 24 / 32 ...）。weight は 400 のみ。
+ */
+@font-face {
+  font-family: 'Tiny5';
+  src: url('./assets/fonts/tiny5.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+  /* 大文字が行の上下中央に収まるようにする */
+  ascent-override: 87.5%;
+  descent-override: 25%;
+  line-gap-override: 0%;
+}
+
+:root {
+  --soot: #0e0f0a;
+  --olive: #2b2a1f;
+  --khaki: #8a8466;
+  --paper: #e2dcc0;
+  --dim: #5e5b46;
+  --stamp: #c0392b;
+  /* soot の RGB。rgba() で透明度をつけるときに使う */
+  --soot-rgb: 14, 15, 10;
+  --font-pixel: 'Tiny5', ui-monospace, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+body {
+  background: #000;
+  color: var(--paper);
+  font-family: var(--font-pixel);
+  font-weight: 400;
+  line-height: 1.375;
+  font-kerning: none;
+  font-synthesis: none;
+  -webkit-font-smoothing: none;
+}
+
+/* WebGLのバッファは内部解像度。ぼかさずに拡大する */
+canvas {
+  display: block;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
+
+/* ---------------------------------------------------------------- ゲーム画面 */
+.stage-wrap {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #000;
+  overflow: hidden;
+}
+.stage {
+  position: relative;
+  overflow: hidden;
+  background: var(--soot);
+}
+
+/* HUD は内部解像度（--w x --h）の座標で書き、--k 倍に拡大する。枠も背景色もなく、文字と罫線だけで構成する */
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.hud-inner {
+  position: relative;
+  width: calc(var(--w) * 1px);
+  height: calc(var(--h) * 1px);
+  transform: scale(var(--k));
+  transform-origin: 0 0;
+  text-shadow: 1px 1px 0 var(--soot);
+}
+/* 上下の暗い帯。ぼかさず、24px ごとに段で濃さが変わる（文字を読みやすくする） */
+.hud-inner::before,
+.hud-inner::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 96px;
+  z-index: 0;
+  pointer-events: none;
+}
+.hud-inner::before {
+  top: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(var(--soot-rgb), 0.85) 24px,
+    rgba(var(--soot-rgb), 0.6) 24px 48px,
+    rgba(var(--soot-rgb), 0.35) 48px 72px,
+    rgba(var(--soot-rgb), 0.15) 72px
+  );
+}
+.hud-inner::after {
+  bottom: 0;
+  background: linear-gradient(
+    to top,
+    rgba(var(--soot-rgb), 0.85) 24px,
+    rgba(var(--soot-rgb), 0.6) 24px 48px,
+    rgba(var(--soot-rgb), 0.35) 48px 72px,
+    rgba(var(--soot-rgb), 0.15) 72px
+  );
+}
+.hud-inner > * {
+  z-index: 1;
+}
+
+.hud p,
+.hud h1,
+.hud ol {
+  margin: 0;
+}
+.hud hr {
+  height: 0;
+  margin: 4px 0;
+  border: 0;
+  border-top: 1px solid var(--khaki);
+}
+/* 補足の小さな文字 */
+.meta {
+  font-size: 8px;
+  color: var(--khaki);
+}
+
+/* 左上: タイトル */
+.masthead {
+  position: absolute;
+  left: 14px;
+  top: 12px;
+  width: 224px;
+}
+.masthead h1 {
+  font-size: 48px;
+  font-weight: 400;
+  line-height: 1.125;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.masthead .tagline {
+  font-size: 16px;
+}
+
+/* 右上: 時計 */
+.clock {
+  position: absolute;
+  right: 14px;
+  top: 12px;
+  min-width: 184px;
+  text-align: right;
+  white-space: nowrap;
+}
+.clock-time {
+  display: block;
+  font-size: 32px;
+  line-height: 1.125;
+}
+.clock-date {
+  display: block;
+  font-size: 16px;
+  color: var(--khaki);
+}
+.clock-colon[data-off] {
+  visibility: hidden;
+}
+
+/* 左下: 手順 */
+.steps {
+  position: absolute;
+  left: 14px;
+  bottom: 12px;
+  padding: 0;
+  list-style: none;
+  font-size: 16px;
+}
+.steps li {
+  display: flex;
+}
+.step-no {
+  flex: none;
+  width: 16px;
+}
+.steps .now {
+  color: var(--paper);
+}
+.steps .done {
+  color: var(--khaki);
+}
+.steps .next {
+  color: var(--dim);
+}
+
+/* 右下: 状態 */
+.status {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  text-align: right;
+  font-size: 16px;
+}
+
+/* 上中央: ダイヤル */
+.dial {
+  position: absolute;
+  left: 50%;
+  top: 12px;
+  transform: translateX(-50%);
+  text-align: center;
+}
+.dial-cells {
+  display: flex;
+  justify-content: center;
+}
+.dial-cell {
+  width: 24px;
+  font-size: 32px;
+  line-height: 1.125;
+}
+
+/* 中央: 番号が違うとき。画面幅いっぱいの帯 */
+.notice {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  padding: 8px 0;
+  text-align: center;
+  font-size: 32px;
+  line-height: 1.125;
+  color: var(--stamp);
+  background: rgba(var(--soot-rgb), 0.85);
+  border-top: 2px solid var(--stamp);
+  border-bottom: 2px solid var(--stamp);
+  white-space: nowrap;
+}
+
+/* 枠なしのテキストボタン（Hang up） */
+.text-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--paper);
+  font: inherit;
+  font-size: 16px;
+  line-height: inherit;
+  text-decoration: none;
+  text-shadow: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.text-btn:hover {
+  text-decoration: underline;
+}
+.text-btn:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 2px;
+}
+
+/* 発信中。画面いっぱいに出す */
+.calling {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--soot);
+  font-size: 80px;
+  pointer-events: auto;
+}
+.calling-dots {
+  display: inline-block;
+  width: 1.6em;
+  text-align: left;
+}
+
+.loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  background: var(--soot);
+  text-align: center;
+  font-size: 16px;
+  pointer-events: auto;
+}
+.loading p {
+  margin: 0;
+}
+.loading-bar {
+  color: var(--khaki);
+}
+
+.fatal {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  background: var(--soot);
+  font-size: 16px;
+}
+.fatal p {
+  margin: 0;
+}
+.fatal-detail {
+  color: var(--stamp);
+  word-break: break-word;
+}
+
+/* ---------------------------------------------------------------- 起動画面・作品ページ */
+.boot {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--soot);
+  font-size: 24px;
+}
+.boot p {
+  margin: 0;
+}
+
+.work-root {
+  position: fixed;
+  inset: 0;
+  background: var(--soot);
+}
+/* 作品ページ（拡大しない画面）の Hang up */
+.work-root .work-hangup {
+  position: fixed;
+  top: 12px;
+  left: 14px;
+  z-index: 10;
+  font-size: 24px;
+}
+.work-fill {
+  position: absolute;
+  inset: 0;
+}
+.work-center {
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  text-align: center;
+  font-size: 32px;
+}
+.work-center p {
+  margin: 0;
+}
+.work-sub {
+  font-size: 16px;
+  color: var(--khaki);
+}
+.work-root .notice {
+  position: static;
+  transform: none;
+}
