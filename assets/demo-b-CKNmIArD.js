@@ -1,0 +1,1 @@
+import{r as e}from"./index-DbuFw-hY.js";var t=e();function n(){return(0,t.jsxs)(`div`,{className:`work-fill work-center`,children:[(0,t.jsx)(`p`,{children:`Demo B`}),(0,t.jsx)(`p`,{className:`work-sub`,children:`This page is a plain React page.`})]})}export{n as default};
